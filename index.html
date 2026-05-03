@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>~/portfolio - tty1 (BLOOD_OS)</title>
+    
+    <!-- Fontes -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Orbitron:wght@700;900&family=Bangers&family=Anton&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           PALETA ABSOLUTA: PRETO E VERMELHO
+           ========================================= */
+        :root {
+            --bg-dark: #030000;      /* Preto levemente avermelhado */
+            --pure-black: #000000;
+            --pure-red: #ff0000;     /* Vermelho Neon */
+            --p5-red: #e0000b;       /* Vermelho Persona 5 */
+            --dark-red: #4a0000;     /* Vermelho Sangue Pisado */
+            --white: #ffffff;
+            --grey: #888888;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100vh;
+            background-color: var(--pure-black);
+            background-image: 
+                radial-gradient(circle at 100% 100%, #1a0000 0%, transparent 50%),
+                linear-gradient(rgba(255, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
+            font-family: 'Fira Code', monospace;
+            color: var(--white);
+            overflow: hidden;
+        }
+
+        /* Efeito de Monitor CRT / Scanlines Vermelhos */
+        body::after {
+            content: " "; display: block; position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 0, 0, 0) 50%, rgba(20, 0, 0, 0.3) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(100, 0, 0, 0.02), rgba(255, 0, 0, 0.04));
+            z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+
+        /* =========================================
+           WAYBAR (STATUS BAR - MODO SANGUE)
+           ========================================= */
+        .waybar {
+            height: 30px; background: rgba(0,0,0,0.9);
+            border-bottom: 2px solid var(--p5-red);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; font-size: 0.85rem; color: var(--grey);
+            backdrop-filter: blur(5px); z-index: 10;
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.2);
+        }
+        .waybar span { margin: 0 10px; }
+        .wb-active { color: var(--pure-red); font-weight: bold; text-shadow: 0 0 5px var(--pure-red); }
+        .wb-urgent { color: var(--white); background: var(--pure-red); padding: 0 5px; animation: blink 1s infinite; }
+
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        /* TILING LAYOUT */
+        .wm-container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 15px; padding: 15px;
+            height: calc(100vh - 60px);
+            box-sizing: border-box;
+        }
+
+        /* BASE DAS JANELAS */
+        .window {
+            background: rgba(5, 0, 0, 0.95);
+            border-radius: 4px; /* Mais quadrado, menos arredondado (agressivo) */
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+        }
+        .titlebar {
+            height: 25px; background: #0a0000;
+            display: flex; align-items: center; padding: 0 10px;
+            font-size: 0.75rem; color: var(--pure-red); user-select: none;
+            border-bottom: 1px solid var(--dark-red);
+        }
+        /* Botões da Janela em tons de vermelho/preto */
+        .dots { display: flex; gap: 6px; margin-right: 15px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .d-1 { background: #330000; } .d-2 { background: #880000; } .d-3 { background: #ff0000; }
+        .win-content { flex: 1; padding: 15px; overflow-y: auto; position: relative; scrollbar-width: thin; scrollbar-color: var(--pure-red) black; }
+
+        /* =========================================
+           JANELA 1: NEOFETCH / GRUNGE (O Vocalista)
+           ========================================= */
+        .win-terminal {
+            grid-column: 1 / 2; grid-row: 1 / 3;
+            border: 1px solid var(--p5-red);
+            box-shadow: inset 0 0 40px rgba(224, 0, 11, 0.1);
+        }
+        .neofetch-container { display: flex; flex-direction: column; gap: 15px; }
+        
+        .grunge-portrait {
+            width: 100%; height: 200px;
+            background: url('icon.png') center/cover;
+            /* Filtro pesado para ficar apenas Preto e Vermelho Escuro */
+            filter: grayscale(100%) contrast(400%) sepia(100%) hue-rotate(315deg) saturate(800%) brightness(0.7);
+            border: 3px solid var(--pure-black);
+            box-shadow: 5px 5px 0 var(--p5-red);
+        }
+
+        .neo-text { color: var(--grey); font-size: 0.85rem; line-height: 1.6; }
+        .neo-text strong { color: var(--pure-red); }
+        .p5-stripe {
+            background: var(--p5-red); color: var(--pure-black);
+            font-family: 'Anton', sans-serif; text-transform: uppercase;
+            transform: skewX(-10deg); padding: 5px 15px;
+            display: inline-block; font-size: 1.2rem; margin: 10px 0;
+            letter-spacing: 2px; box-shadow: 3px 3px 0 var(--pure-black);
+        }
+
+        /* =========================================
+           JANELA 2: CYBERPUNK (Mentality DB -> RED)
+           ========================================= */
+        .win-cyber {
+            grid-column: 2 / 3; grid-row: 1 / 3;
+            border: 1px solid var(--pure-red);
+            background: var(--pure-black);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.15);
+        }
+        .win-cyber .titlebar { background: var(--pure-red); color: var(--pure-black); font-weight: bold; border-bottom: none; }
+        .win-cyber .dot { background: var(--pure-black); }
+
+        .cyber-header {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--pure-red);
+            border-bottom: 1px dashed var(--pure-red);
+            padding-bottom: 10px; margin-bottom: 15px;
+            display: flex; justify-content: space-between;
+            text-shadow: 0 0 5px var(--pure-red);
+        }
+
+        .scanning-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--pure-red);
+            box-shadow: 0 0 15px var(--pure-red), 0 0 30px var(--pure-red);
+            animation: scan 3s linear infinite;
+            z-index: 5; pointer-events: none; opacity: 0.6;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .roblox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .wireframe-card {
+            border: 1px solid var(--pure-red);
+            padding: 5px; position: relative;
+            background: repeating-linear-gradient(45deg, #000, #000 5px, #110000 5px, #110000 10px);
+        }
+        .wireframe-card img {
+            width: 100%; height: 120px; object-fit: cover;
+            /* Transforma qualquer imagem de modelo num wireframe infernal avermelhado */
+            filter: grayscale(100%) contrast(200%) sepia(100%) hue-rotate(315deg) saturate(500%);
+            border-bottom: 1px solid var(--pure-red);
+        }
+        .wireframe-card img:not([src]),
+        .wireframe-card img[src=""] {
+            background: linear-gradient(135deg, #330000, #110000);
+            display: block;
+        }
+        .cyber-data {
+            font-size: 0.7rem; color: var(--pure-red);
+            padding: 5px; text-transform: uppercase; font-weight: bold;
+        }
+
+        /* =========================================
+           JANELA 3: BLOOD AERO (Dark Frutiger)
+           ========================================= */
+        .win-frutiger {
+            grid-column: 3 / 4; grid-row: 1 / 2;
+            border: 1px solid rgba(255,0,0,0.4);
+            background: linear-gradient(to bottom right, rgba(139, 0, 0, 0.3), rgba(0,0,0,0.9));
+            position: relative; overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.1);
+        }
+        .st-neon {
+            font-family: 'Fira Code', monospace;
+            color: var(--pure-red); text-shadow: 0 0 10px var(--pure-red), 0 0 20px var(--dark-red);
+            text-align: center; font-size: 1.2rem; font-weight: bold;
+        }
+        /* Bolhas Vermelhas (Sangue/Lava) */
+        .mini-bubble {
+            position: absolute; border: 1px solid rgba(255,0,0,0.6);
+            border-radius: 50%; box-shadow: inset 0 0 15px rgba(255,0,0,0.3);
+            bottom: -20px; animation: rise 5s infinite ease-in;
+            background: radial-gradient(circle at 30% 30%, rgba(255,0,0,0.4), transparent);
+        }
+        @keyframes rise { to { transform: translateY(-300px); opacity: 0; } }
+
+        /* =========================================
+           JANELA 4: STICKER PUNK (Scrapbook Sombrio)
+           ========================================= */
+        .win-social {
+            grid-column: 3 / 4; grid-row: 2 / 3;
+            background: var(--pure-black);
+            /* Checkerboard Preto e Vermelho Bem Escuro */
+            background-image: linear-gradient(45deg, #0a0000 25%, transparent 25%, transparent 75%, #0a0000 75%, #0a0000), 
+                              linear-gradient(45deg, #0a0000 25%, transparent 25%, transparent 75%, #0a0000 75%, #0a0000);
+            background-size: 20px 20px; background-position: 0 0, 10px 10px;
+            border: 4px solid var(--pure-red);
+        }
+        .win-social .titlebar { background: var(--pure-red); color: var(--pure-black); border-bottom: 4px solid var(--pure-red); font-weight: bold; }
+        
+        .social-links {
+            display: flex; flex-direction: column; gap: 15px; align-items: center; justify-content: center; height: 100%;
+        }
+        
+        /* Fita Isolante Vermelha (Torn Paper) */
+        .btn-torn {
+            background: var(--p5-red);
+            color: var(--pure-black); font-family: 'Bangers', cursive;
+            font-size: 1.5rem; letter-spacing: 2px;
+            padding: 10px 30px; text-decoration: none;
+            clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+            border-bottom: 3px solid #440000;
+            transform: rotate(-3deg);
+            transition: 0.2s;
+            box-shadow: 5px 5px 0 rgba(0,0,0,0.8);
+        }
+        .btn-torn:nth-child(even) { background: #a00000; transform: rotate(2deg); color: white; }
+        .btn-torn:hover { transform: scale(1.1) rotate(0deg); background: var(--pure-red); box-shadow: 0 0 15px var(--pure-red); color: white; }
+
+        /* Responsividade Básica */
+        @media (max-width: 900px) {
+            .wm-container { display: flex; flex-direction: column; height: auto; overflow-y: auto; }
+            .window { height: 400px; margin-bottom: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WAYBAR / STATUS BAR -->
+    <div class="waybar">
+        <div>
+            <span class="wb-active">1:VOID</span>
+            <span>2:SYSTEM</span>
+            <span>3:DEV</span>
+            <span class="wb-urgent">9:HELL</span>
+        </div>
+        <div>
+            <span>WM: Hyprland</span>
+            <span style="color: var(--pure-red)">[ROBLOX_CORE]</span>
+        </div>
+        <div>
+            <span>NET: UP</span>
+            <span style="color: var(--pure-red); font-weight:bold;">BAT: 13% (Draining)</span>
+            <span id="clock" style="color:var(--white);">17:01</span>
+        </div>
+    </div>
+
+    <!-- TILING WINDOW MANAGER CONTAINER -->
+    <div class="wm-container">
+
+        <!-- JANELA 1: TERMINAL (Neofetch + Grunge) -->
+        <div class="window win-terminal">
+            <div class="titlebar">
+                <div class="dots"><div class="dot d-1"></div><div class="dot d-2"></div><div class="dot d-3"></div></div>
+                urxvt - neofetch
+            </div>
+            <div class="win-content">
+                <div class="neofetch-container">
+                    <!-- Foto Threshold Vermelha/Preta -->
+                    <div class="grunge-portrait"></div>
+                    
+                    <div class="neo-text">
+                        <div class="p5-stripe">archlinux@V0ID</div><br>
+                        <strong>OS:</strong> Arch Linux x86_64<br>
+                        <strong>WM:</strong> Hyprland<br>
+                        <strong>Theme:</strong> ????<br>
+                        <strong>Terminal:</strong> Alacritty<br>
+                        <strong>Skillset:</strong> 
+                        <span style="color: var(--white)">Blender 3D, Substance Painter, Roblox Studio,UI DESIGNER,C++ and LUA "for roblox" </span><br>
+                        <strong>Status:</strong> WORKINGG!!!!!<br>
+                        <br>
+                        <span style="color: var(--dark-red)">/* Creating UGC items from the depths of the Upside Down */</span>
+                    </div>
+                    <span style="color: var(--dark-red)">buy me a coffee? or check my roblox profile for my work!</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- JANELA 2: CYBERPUNK (NSSDC -> Modo Sangue) -->
+        <div class="window win-cyber">
+            <div class="titlebar">
+                <div class="dots"><div class="dot d-1"></div><div class="dot d-2"></div><div class="dot d-3"></div></div>
+                sys_monitor :: MENTALITY_RED
+            </div>
+            <div class="win-content">
+                <div class="scanning-line"></div>
+                <div class="cyber-header">
+                    <span>NSSDC DATA_CENTER</span>
+                    <span>SCANNING_CORRUPTION... 99%</span>
+                </div>
+                
+                <div class="roblox-grid">
+                    <!-- Os filtros nas imagens vão forçar elas a ficarem vermelho e preto -->
+                    <!-- Item 1 -->
+                    <div class="wireframe-card">
+                        <img src="sword.png" alt="Sword">
+                        <div class="cyber-data">
+                            ID: 666-A<br>OBJ: Blood Sword from Adventure Time <br> Cartoon Style<br>  !!!
+                        </div>
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="wireframe-card">
+                        <img src="knife.png" alt="Knife">
+                        <div class="cyber-data">
+                            ID: 666-B<br>OBJ: Cursed Knife from Adventure Time <br> Cartoon Style<br>  !!!
+                        </div>
+                    </div>
+                     <!-- Item 3 -->
+                     <div class="wireframe-card">
+                        <img src="kat.png" alt="Kat">
+                        <div class="cyber-data">
+                            ID: 666-C<br>OBJ: Kat from Seven Deadly Sins<br>RIG: CUSTOM With Anim
+                        </div>
+                    </div>
+                    <!-- Item 4 -->
+                    <div class="wireframe-card">
+                        <img src="GUITAR.png" alt="Guitar">
+                        <div class="cyber-data">
+                            ID: 666-D<br>OBJ: Marceline Guitar From Adventure Time<br>RIG: CUSTOM
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JANELA 3: BLOOD AERO -->
+        <div class="window win-frutiger">
+            <div class="titlebar">
+                <div class="dots"><div class="dot d-1"></div><div class="dot d-2"></div><div class="dot d-3"></div></div>
+                render_engine_preview.exe
+            </div>
+            <div class="win-content">
+                <p class="st-neon">Void guy :p</p>
+                <p style="text-align:center; font-family:sans-serif; font-size:0.8rem; color: #aaa;">Dark Matter Shaders Active</p>
+                <!-- Bolhas cor de sangue -->
+                <div class="mini-bubble" style="width:40px; height:40px; left:20%; animation-duration: 4s;"></div>
+                <div class="mini-bubble" style="width:60px; height:60px; left:50%; animation-duration: 6s;"></div>
+                <div class="mini-bubble" style="width:25px; height:25px; left:80%; animation-duration: 3s;"></div>
+            </div>
+        </div>
+
+        <!-- JANELA 4: STICKER PUNK (Links) -->
+        <div class="window win-social">
+            <div class="titlebar">
+                <div class="dots"><div class="dot d-1"></div><div class="dot d-2"></div><div class="dot d-3"></div></div>
+                dead_links.txt
+            </div>
+            <div class="win-content">
+                <div class="social-links">
+                    <a href="https://www.roblox.com/pt/users/941503243/profile" class="btn-torn">ROBLOX PROFILE -></a>
+                    <a href="#" class="btn-torn">In comming -></a>
+                    <a href="#" class="btn-torn">In comming -></a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Relógio -->
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
